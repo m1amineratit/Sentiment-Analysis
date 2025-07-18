@@ -125,4 +125,4 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-OPEN_API_ROUTER="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"
+OPEN_API_ROUTER="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"

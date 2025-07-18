@@ -1,10 +1,12 @@
+from django.http import JsonResponse
 from django.shortcuts import render
 import requests
 from textblob import TextBlob
-from .forms import UrlForm
+from .forms import RedditUrlForm, YoutubeRedditForm
 from django.conf import settings
 from django.conf import settings
-
+from itertools import islice
+from youtube_comment_downloader import *
 
 def summar_the_comments(text):
     try:
@@ -16,6 +18,7 @@ def summar_the_comments(text):
             },
             json={
                 "model": "mistralai/mistral-small-3.2-24b-instruct:free",
+                
                 "messages": [
                     {
                         "role": "system",
@@ -41,9 +44,8 @@ def summar_the_comments(text):
 
 def home(request):
     url_info = {}
-    form = UrlForm(request.POST or None)
+    form = RedditUrlForm(request.POST or None)
     comments_list = []
-    print("API KEY:", settings.OPEN_API_ROUTER)
 
     pos = neu = neg = 0
     if request.method == 'POST' and form.is_valid():
@@ -101,3 +103,41 @@ def home(request):
         'neu' : neu,
         'neg' : neg        
         })
+
+
+def youtube_comments(request):
+    comments_list = []
+    pos = neg = neu = 0
+    form = YoutubeRedditForm(request.POST)
+    if request.method == 'POST' and form.is_valid():
+        url = form.cleaned_data['url']
+        downloader = YoutubeCommentDownloader()
+        comments = downloader.get_comments_from_url(f'{url}', sort_by=SORT_BY_POPULAR)
+        try:
+            for comment in islice(comments, 10):
+                text = comment['text']
+                polarity = TextBlob(text).sentiment.polarity
+                
+                if polarity < 0.1:
+                    sentiment_label = '😡 Negative'
+                elif polarity > 0.1:
+                    sentiment_label = '😊 Positive'
+                else:
+                    sentiment_label = '😐 Neutral'
+
+                summary = summar_the_comments(text)
+
+                comments_list = ({
+                    'author' : comment['author'],
+                    'body' : comment['text'],
+                    'score' : polarity,
+                    'summary' : summary,
+                    'sentiment_label' : sentiment_label,
+                })
+            pos = sum(1 for c in comments_list if c['score'] > 0.1)
+            neg = sum(1 for c in comments_list if c['score'] < 0.1)
+            neu = sum(1 for c in comments_list if -0.1 <= c['score'] <= 0.1)
+
+        except Exception as e:
+            return JsonResponse({'error' : e})
+    return render(request, 'pages/youtube.html', {'comments_list' : comments_list, 'form' : form, 'pos' : pos, 'neg' : neg, 'neu' : neu})

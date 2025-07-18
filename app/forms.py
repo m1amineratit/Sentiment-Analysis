@@ -1,5 +1,8 @@
 from django import forms
 
 
-class UrlForm(forms.Form):
+class RedditUrlForm(forms.Form):
+    url = forms.URLField()
+
+class YoutubeRedditForm(forms.Form):
     url = forms.URLField()
