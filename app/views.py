@@ -4,21 +4,21 @@ import requests
 from textblob import TextBlob
 from .forms import RedditUrlForm, YoutubeRedditForm
 from django.conf import settings
-from django.conf import settings
 from itertools import islice
 from youtube_comment_downloader import *
+
+OPENROUTER_API_KEY="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"
 
 def summar_the_comments(text):
     try:
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={
-                'Authorization': f'Bearer {settings.OPEN_API_ROUTER}',
+                'Authorization': f'Bearer {OPENROUTER_API_KEY}',
                 'Content-Type': 'application/json',
             },
             json={
                 "model": "mistralai/mistral-small-3.2-24b-instruct:free",
-                
                 "messages": [
                     {
                         "role": "system",
@@ -34,8 +34,17 @@ def summar_the_comments(text):
         )
 
         result = response.json()
-        summary = result['choices'][0]['message']['content'].strip()
-        return summary
+
+        # Debugging line (optional, remove later)
+        # print(result)
+
+        if "choices" in result and len(result["choices"]) > 0:
+            summary = result["choices"][0]["message"]["content"].strip()
+            return summary
+        elif "error" in result:
+            return f"⚠️ API Error: {result['error'].get('message', 'Unknown error')}"
+        else:
+            return "⚠️ Unexpected API response format."
 
     except Exception as e:
         return f"⚠️ Error: {str(e)}"

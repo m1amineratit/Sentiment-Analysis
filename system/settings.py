@@ -128,4 +128,4 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-OPEN_API_ROUTER=os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_KEY=os.getenv("OPENROUTER_API_KEY")
